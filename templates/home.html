@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="visual-wrapper">
+
+    <!-- HERO SECTION -->
+    <div class="visual-card" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 40px;">
+        <h1 style="margin: 0; font-size: 28px;">Dashboard Prediksi Penumpang</h1>
+        <p style="opacity: 0.9; margin-top: 10px; font-size: 16px;">Analisis dan prediksi arus penumpang udara menggunakan metode Holt-Winters dan Moving Average secara cepat.</p>
+    </div>
+
+    <!-- PENGATURAN -->
+    <div class="visual-card">
+        <h3>Konfigurasi Cepat</h3>
+        <form method="POST" action="/" id="homeForm">
+            <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Pilih Bandara:</label>
+                    <select name="bandara" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; background-color: #f9fafb;">
+                        <option value="" {% if not bandara %}selected{% endif %} disabled>Pilih Bandara</option>
+                        {% for col in columns %}
+                        <option value="{{ col }}" {% if bandara == col %}selected{% endif %}>{{ col.replace('_', ' ').title() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Metode Peramalan:</label>
+                    <select name="metode" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; background-color: #f9fafb;">
+                        <option value="holt" {% if metode == 'holt' %}selected{% endif %}>Holt-Winters</option>
+                        <option value="ma" {% if metode == 'ma' %}selected{% endif %}>Moving Average</option>
+                    </select>
+                </div>
+                <button type="submit" class="primary-btn" style="padding: 12px 30px; font-weight: 600; background: #4f46e5; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+                    Proses Analisis
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if hasil_prediksi %}
+    <!-- GRAFIK -->
+    <div class="visual-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>Visualisasi Tren & Proyeksi</h3>
+        </div>
+        <div style="position: relative; height: 400px; width: 100%;">
+            <canvas id="homeForecastChart"></canvas>
+        </div>
+    </div>
+
+    <!-- HASIL TABEL -->
+    <div class="visual-card">
+        <h3>Estimasi 12 Bulan Ke Depan</h3>
+        <div class="table-wrapper" style="max-height: none;">
+            <table class="data-table" style="min-width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Periode (Bulan-Tahun)</th>
+                        <th>Estimasi Jumlah Penumpang</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in range(hasil_prediksi|length) %}
+                    <tr>
+                        <td>{{ periode_prediksi[i] }}</td>
+                        <td style="font-weight: 700; color: #4f46e5;">{{ "{:,.0f}".format(hasil_prediksi[i]).replace(',', '.') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="visual-card" style="text-align: center; padding: 60px 20px; color: #6b7280;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 20px; opacity: 0.5;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <p>Silakan pilih bandara dan metode untuk menampilkan analisis peramalan.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+{% if hasil_prediksi %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('homeForecastChart').getContext('2d');
+        
+        const labels = JSON.parse('{{ periode_prediksi | tojson | safe }}');
+        const dataPrediksi = JSON.parse('{{ hasil_prediksi | tojson | safe }}');
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Proyeksi 12 Bulan Ke Depan',
+                        data: dataPrediksi,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#4f46e5',
+                        pointBorderColor: '#fff',
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('id-ID');
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 20 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#1e293b',
+                        bodyColor: '#475569',
+                        borderColor: '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString('id-ID');
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+
+{% endblock %}

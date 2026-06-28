@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- MODAL VALIDASI -->
+<div id="validationModal" class="modal-overlay" style="{% if show_error_modal %}display: flex;{% else %}display: none;{% endif %}">
+    <div class="modal-card">
+        <div class="modal-body">
+            <div style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
+            <h3 style="margin-bottom: 10px; color: #1f2937;">Akses Dibatasi</h3>
+            <p id="modalMessage" style="color: #6b7280; margin-bottom: 25px; line-height: 1.5;">{{ error_message }}</p>
+            <a href="/method" style="text-decoration: none;">
+                <button class="primary-btn" style="width: 100%; background: #4f46e5;">Pilih Metode Sekarang</button>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-card {
+        background: white;
+        padding: 30px;
+        border-radius: 16px;
+        width: 350px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        text-align: center;
+        animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalPop {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+</style>
+
+{% if not show_error_modal %}
+<div class="evaluation-wrapper">
+    <!-- ROW ATAS -->
+    <div class="eval-row">
+
+        <!-- GRAFIK -->
+        <div class="eval-card">
+            <h3>Hasil Prediksi - {{ kolom_target.replace('_', ' ').title() }}</h3>
+            <canvas id="grafikPrediksi"></canvas>
+        </div>
+
+        <!-- TABEL -->
+        <div class="eval-card">
+            <h3>Tabel Hasil Forecast</h3>
+
+            <div style="max-height: 450px; overflow-y: auto;">
+                <table class="eval-table">
+                    <thead style="position: sticky; top: 0; background: #f5f7fb; z-index: 1;">
+                        <tr>
+                            <th>Periode</th>
+                            <th>Aktual</th>
+                            <th>Prediksi</th>
+                            <th>Error (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in hasil %}
+                        <tr>
+                            <td>{{ row.periode }}</td>
+                            <td>{{ row.aktual }}</td>
+                            <td>{{ row.prediksi }}</td>
+                            <td>{{ row.error }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="eval-card" style="margin-top: 25px;">
+        <h3>Summary Statistik
+            {% if metode == 'holt' %}
+            <span style="font-size: 14px; font-weight: 600; color: #4f46e5; margin-left: 15px; background: #e0e7ff; padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(79, 70, 229, 0.15);">
+                Alpha (α) = {{ alpha|round(2) }} &nbsp;|&nbsp; Beta (β) = {{ beta|round(2) }} &nbsp;|&nbsp; Gamma (γ) = {{ gamma|round(2) }}
+            </span>
+            {% elif metode == 'sma' %}
+            <span style="font-size: 14px; font-weight: 600; color: #d97706; margin-left: 15px; background: #fef3c7; padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(217, 119, 6, 0.15);">
+                Window Size (N) = {{ sma_window }}
+            </span>
+            {% endif %}
+        </h3>
+
+        <div class="metric-container">
+            <div class="metric-box">
+                <p>RMSE</p>
+                <h2>{{ rmse }}</h2>
+            </div>
+
+            <div class="metric-box">
+                <p>MAE</p>
+                <h2>{{ mae }}</h2>
+            </div>
+
+            <div class="metric-box">
+                <p>MAPE</p>
+                <h2>{{ mape }}%</h2>
+            </div>
+
+            <div class="metric-box">
+                <p>R² (R-Squared)</p>
+                <h2>{{ r2 }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- BUTTON LANJUT -->
+    <div style="margin-top: 30px; text-align: right;">
+        <a href="{{ url_for('visualization') }}" class="primary-btn" style="text-decoration: none; display: inline-block; background: #4f46e5; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+            Lanjut ke Visualisasi &rarr;
+        </a>
+    </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = JSON.parse('{{ periode_list | tojson | safe }}');
+    const aktual = JSON.parse('{{ aktual_list | tojson | safe }}');
+    const prediksi = JSON.parse('{{ prediksi_list | tojson | safe }}');
+
+    new Chart(document.getElementById("grafikPrediksi"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Aktual",
+                    data: aktual,
+                    borderColor: "blue",
+                    fill: false
+                },
+                {
+                    label: "Prediksi",
+                    data: prediksi,
+                    borderColor: "red",
+                    borderDash: [5, 5],
+                    fill: false
+                }
+            ]
+        }
+    });
+</script>
+{% endif %}
+
+{% endblock %}

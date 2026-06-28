@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<form method="POST" action="/preprocessing">
+
+    <div class="pre-card">
+
+        <h2>Pra-pemrosesan Data</h2>
+        <p>Melakukan pembersihan dan penyesuaian data sebelum proses prediksi.</p>
+
+
+        <!-- INFO DATASET -->
+        <div class="pre-section">
+            <h3>Info Dataset</h3>
+            <p>Jumlah Data : {{ jumlah_data }}</p>
+            <p>Jumlah Kolom : {{ jumlah_kolom }}</p>
+        </div>
+
+
+        <!-- PILIH KOLOM & PERIODE AWAL -->
+        <div class="pre-section">
+            <h3>Pilih Target Ramalan & Tanggal Mulai</h3>
+
+            <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Kolom Target:</label>
+                    <select name="kolom_target" onchange="resetMissingCheck()" style="padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; min-width: 200px;">
+                        <option value="">-- Pilih Kolom --</option>
+                        {% for col in columns %}
+                        {% if col != 'Tahun' and col != 'Bulan' %}
+                        <option value="{{ col }}" {% if kolom_target==col %}selected{% endif %}>{{ col }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Mulai dari Periode (Opsional):</label>
+                    <select name="periode_awal" onchange="resetMissingCheck()" style="padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; min-width: 200px;">
+                        <option value="">-- Gunakan Data Paling Awal --</option>
+                        {% for p in periode_awal_list %}
+                        <option value="{{ p }}" {% if periode_awal==p %}selected{% endif %}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Sampai Periode (Opsional):</label>
+                    <select name="periode_akhir" onchange="resetMissingCheck()" style="padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; min-width: 200px;">
+                        <option value="">-- Gunakan Data Paling Akhir --</option>
+                        {% for p in periode_awal_list %}
+                        <option value="{{ p }}" {% if periode_akhir==p %}selected{% endif %}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- CEK MISSING VALUE -->
+        <div class="pre-section">
+            <h3>Pengecekan Data Hilang</h3>
+
+            <div id="step1-missing" {% if missing_info %}style="display: none;" {% else %}style="display: block;" {%
+                endif %}>
+                <p style="margin-bottom: 10px;">Klik tombol di bawah untuk memeriksa apakah ada data kosong pada kolom
+                    target.</p>
+                <button type="submit" name="action" value="cek_missing"
+                    onclick="if(document.getElementById('metodeSelect')) document.getElementById('metodeSelect').value='';"
+                    style="padding: 10px 18px; border-radius: 6px; cursor: pointer; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; font-weight: 600; transition: background 0.2s;"
+                    onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">Periksa
+                    Data Hilang</button>
+            </div>
+
+            <div id="step2-missing" {% if missing_info %}style="display: block;" {% else %}style="display: none;" {%
+                endif %}>
+                <p style="margin-top:10px; font-weight: bold; color: #b91c1c;">{{ missing_info }}</p>
+
+                <div style="margin-top: 15px;">
+                    <label style="font-weight: 500; display: block; margin-bottom: 8px;">Metode Penanganan:</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select name="metode_missing" id="metodeSelect"
+                            style="padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; flex: 1; max-width: 250px;">
+                            <option value="">-- Pilih Metode --</option>
+                            <option {% if metode_missing=='Hapus Data Kosong' %}selected{% endif %}>Hapus Data Kosong
+                            </option>
+                            <option {% if metode_missing=='Interpolasi Linear' %}selected{% endif %}>Interpolasi Linear
+                            </option>
+                            <option {% if metode_missing=='Forward Fill' %}selected{% endif %}>Forward Fill</option>
+                            <option {% if metode_missing=='Mean' %}selected{% endif %}>Mean</option>
+                        </select>
+
+                        <button type="submit" name="action" value="cek_missing"
+                            style="padding: 10px 18px; border-radius: 6px; cursor: pointer; background: #4f46e5; color: white; border: none; font-weight: 600; transition: background 0.2s;"
+                            onmouseover="this.style.background='#4338ca'"
+                            onmouseout="this.style.background='#4f46e5'">Terapkan Metode</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function resetMissingCheck() {
+                var step1 = document.getElementById('step1-missing');
+                var step2 = document.getElementById('step2-missing');
+                var selectMetode = document.getElementById('metodeSelect');
+                var prosesBtn = document.getElementById('prosesBtn');
+                var prosesWarning = document.getElementById('prosesWarning');
+
+                if (step1 && step2) {
+                    step1.style.display = 'block';
+                    step2.style.display = 'none';
+                }
+                if (selectMetode) {
+                    selectMetode.value = '';
+                }
+                if (prosesBtn) {
+                    prosesBtn.disabled = true;
+                    prosesBtn.style.opacity = '0.5';
+                    prosesBtn.style.cursor = 'not-allowed';
+                }
+                if (prosesWarning) {
+                    prosesWarning.style.display = 'block';
+                }
+            }
+        </script>
+
+
+        <!-- PEMBERSIHAN PANDEMI COVID -->
+        <div class="pre-section">
+            <h3>Pembersihan Data Outlier (Opsional)</h3>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; border: 1px solid #d1d5db; padding: 12px 16px; border-radius: 6px; background-color: #f9fafb; max-width: fit-content;">
+                <input type="checkbox" name="buang_covid" value="yes" {% if buang_covid == 'yes' %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                <span style="font-size: 15px; color: #374151;">Hapus data masa pandemi COVID-19 (Tahun <strong>2020 - 2022</strong>)</span>
+            </label>
+        </div>
+
+        <!-- SPLIT DATA -->
+        <div class="pre-section">
+            <h3>Pembagian Data Training & Testing</h3>
+
+            <label>Training: <strong id="val-training">{{ persen_training or 80 }}</strong>%</label>
+            <input type="range" name="persen_training" min="50" max="95" value="{{ persen_training or 80 }}" oninput="document.getElementById('val-training').textContent = this.value; 
+                    document.getElementById('val-testing').textContent = 100 - this.value;
+                    document.getElementById('hidden-testing').value = 100 - this.value;">
+
+            <br><br>
+
+            <label>Testing: <strong id="val-testing">{{ persen_testing or 20 }}</strong>%</label>
+            <input type="hidden" name="persen_testing" id="hidden-testing" value="{{ persen_testing or 20 }}">
+        </div>
+
+
+        <!-- PROSES BUTTON -->
+        <div class="pre-section">
+            <button type="submit" name="action" value="proses" class="primary-btn" id="prosesBtn" {% if not missing_info
+                or '✅' not in missing_info %}disabled title="Harap tangani data hilang terlebih dahulu."
+                style="opacity: 0.5; cursor: not-allowed;" {% endif %}>
+                Proses Pra-pemrosesan
+            </button>
+            <p id="prosesWarning" {% if not missing_info or '✅' not in missing_info %}
+                style="font-size: 13px; color: #dc2626; margin-top: 8px; display: block;" {% else %}
+                style="font-size: 13px; color: #dc2626; margin-top: 8px; display: none;" {% endif %}>
+                * Silakan periksa dan pastikan status data hilang tertangani agar dapat memulai proses.
+            </p>
+        </div>
+
+
+        <!-- PREVIEW HASIL -->
+        <div id="previewSection" class="pre-section">
+            <h3>Preview Data Hasil</h3>
+
+            {% if preview_data %}
+            <p>Kolom : <strong>{{ kolom_target }}</strong> | Training : <strong>{{ persen_training }}%</strong> |
+                Testing : <strong>{{ persen_testing }}%</strong></p>
+
+            <div class="table-wrapper">
+                <table class="data-table" style="min-width: 100%; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%; text-align: left; padding: 8px;">Periode</th>
+                            <th style="width: 50%; text-align: left; padding: 8px;">{{ kolom_target }}</th>
+                            <th style="width: 25%; text-align: left; padding: 8px;">Set</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in preview_data %}
+                        <tr>
+                            <td style="text-align: left; padding: 8px;">{{ row.periode }}</td>
+                            <td style="text-align: left; padding: 8px;">{{ row.nilai }}</td>
+                            <td style="text-align: left; padding: 8px;">{{ row.set }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% else %}
+            <p>Hasil preprocessing akan tampil di sini.</p>
+            {% endif %}
+
+        </div>
+
+        <!-- TOMBOL LANJUT -->
+        {% if preview_data %}
+        <div class="nav-card" style="text-align: right; margin: 20px 20px 20px 0;">
+            <a href="/method" style="text-decoration: none;">
+                <button type="button" class="primary-btn"
+                    style="font-size: 15px; font-weight: bold; box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);">Lanjut
+                    ke Metode →</button>
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+
+</form>
+
+{% if preview_data %}
+<script>
+    document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+</script>
+{% endif %}
+
+{% endblock %}

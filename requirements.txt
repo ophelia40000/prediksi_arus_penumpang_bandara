@@ -1,0 +1,6 @@
+flask
+statsmodels
+scikit-learn
+pandas
+numpy
+openpyxl

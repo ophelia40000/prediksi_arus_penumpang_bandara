@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<form method="POST" action="/method">
+
+    <div class="prediction-card">
+
+        <h2>Prediksi Arus Penumpang</h2>
+        <p>Pilih metode peramalan dan tentukan parameter model.</p>
+
+
+        <!-- PILIH METODE -->
+        <div class="predict-section">
+            <h3>Pilih Metode</h3>
+
+            <select name="metode" required onchange="changeMethod(this.value)">
+                <option value="">-- Pilih Metode --</option>
+                <option value="sma">Simple Moving Average</option>
+                <option value="holt">Holt-Winters</option>
+            </select>
+        </div>
+
+
+        <!-- PARAMETER SIMPLE MOVING AVERAGE -->
+        <div id="smaParams" class="predict-section" style="display:none;">
+            <h3>Parameter Simple Moving Average</h3>
+
+            <label>Window (Ukuran Jendela):</label>
+            <input type="number" name="sma_window" id="sma_window" min="1" placeholder="contoh: 3">
+        </div>
+
+
+        <!-- PARAMETER HOLT-WINTERS -->
+        <div id="holtParams" class="predict-section" style="display:none;">
+            <h3>Parameter Holt-Winters</h3>
+
+            <!-- TOGGLE MANUAL / OTOMATIS -->
+            <label>Mode Parameter:</label>
+            <select name="holt_mode" id="holtMode" onchange="changeHoltMode(this.value)">
+                <option value="otomatis">Otomatis</option>
+                <option value="manual">Manual</option>
+            </select>
+
+            <div id="holtManual" style="display:none;">
+                <label>Alpha (Level):</label>
+                <input type="number" name="alpha" id="alpha" step="0.01" min="0" max="1" placeholder="0 - 1">
+
+                <br><br>
+
+                <label>Beta (Trend):</label>
+                <input type="number" name="beta" id="beta" step="0.01" min="0" max="1" placeholder="0 - 1">
+
+                <br><br>
+
+                <label>Gamma (Seasonal):</label>
+                <input type="number" name="gamma" id="gamma" step="0.01" min="0" max="1" placeholder="0 - 1">
+
+                <br><br>
+
+                <label>s (Seasonal Period):</label>
+                <input type="number" name="seasonal_period" id="seasonal_period" min="1" placeholder="contoh: 12">
+            </div>
+
+            <div id="holtOtomatis">
+                <p>Parameter akan dicari otomatis oleh sistem menggunakan optimasi.</p>
+            </div>
+
+        </div>
+
+
+        <!-- BUTTON -->
+        <div class="predict-section">
+            <button type="submit" class="primary-btn">Jalankan Prediksi</button>
+        </div>
+
+    </div>
+
+</form>
+
+<script>
+    function changeMethod(method) {
+        document.getElementById("smaParams").style.display = "none";
+        document.getElementById("holtParams").style.display = "none";
+
+        // Reset required
+        document.getElementById("sma_window").required = false;
+        toggleHoltRequired(false);
+
+        if (method === "sma") {
+            document.getElementById("smaParams").style.display = "block";
+            document.getElementById("sma_window").required = true;
+        }
+
+        if (method === "holt") {
+            document.getElementById("holtParams").style.display = "block";
+            // Check current mode
+            const mode = document.getElementById("holtMode").value;
+            toggleHoltRequired(mode === "manual");
+        }
+    }
+
+    function changeHoltMode(mode) {
+        if (mode === "manual") {
+            document.getElementById("holtManual").style.display = "block";
+            document.getElementById("holtOtomatis").style.display = "none";
+            toggleHoltRequired(true);
+        } else {
+            document.getElementById("holtManual").style.display = "none";
+            document.getElementById("holtOtomatis").style.display = "block";
+            toggleHoltRequired(false);
+        }
+    }
+
+    function toggleHoltRequired(isRequired) {
+        document.getElementById("alpha").required = isRequired;
+        document.getElementById("beta").required = isRequired;
+        document.getElementById("gamma").required = isRequired;
+        document.getElementById("seasonal_period").required = isRequired;
+    }
+</script>
+
+{% endblock %}
