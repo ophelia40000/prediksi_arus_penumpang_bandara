@@ -51,7 +51,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-HOME_DATA_FILE = "target_penumpang_domestik_internasional_2006_2024.xlsx"
+HOME_DATA_FILE = "Dataset/target_penumpang_domestik_internasional_2006_2024.xlsx"
 
 FORECAST_PARAMS = {
     "soekarno_hatta_jakarta_domestik": {
